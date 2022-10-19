@@ -3,7 +3,7 @@ package io.univalence.hrops
 import zio._
 import zio.stream._
 
-import java.io.IOException
+import java.io.{ByteArrayOutputStream, IOException}
 import java.net.URL
 
 trait Downloader {
@@ -14,6 +14,17 @@ object Downloader {
 
   def download(url: String): ZStream[Downloader, IOException, Byte] =
     ZStream.serviceWithStream[Downloader](_.download(url))
+
+  def downloadEffect(uri: String): ZIO[Downloader, Nothing, Array[Byte]] = {
+    val byteArrayOutputStream: ByteArrayOutputStream = new ByteArrayOutputStream()
+    for {
+      _ <-
+        Downloader
+          .download(uri)
+          .run(ZSink.fromOutputStream(byteArrayOutputStream))
+          .orDie
+    } yield byteArrayOutputStream.toByteArray
+  }
 
   private case class HttpClientLive() extends Downloader {
 
